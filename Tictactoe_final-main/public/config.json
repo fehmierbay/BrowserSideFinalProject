@@ -1,0 +1,7 @@
+{
+	"gridsizes":[3, 5, 9],
+	"languages":"/langlist.json",
+	"login":"/login.php",
+	"receiver":"/receive.php",
+	"serviceroot":"http://127.0.0.1:12380"
+}
