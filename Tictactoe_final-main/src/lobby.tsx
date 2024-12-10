@@ -5,7 +5,7 @@ import PersonIcon from '@mui/icons-material/Person';
 import GroupIcon from '@mui/icons-material/Group';
 
 interface LobbyProps {
-  onStartGame: (opponent: User, existingGameId?: string) => void;
+  onStartGame: (opponent: User) => void;
 }
 
 interface User {
@@ -23,7 +23,7 @@ const Lobby: React.FC<LobbyProps> = ({ onStartGame }) => {
     try {
       const response = await fetch('http://localhost:12380/session.php', {
         method: 'GET',
-        credentials: 'include'
+        credentials: 'include',
       });
       const data = await response.json();
       if (data.loggedInUsers) {
@@ -38,8 +38,8 @@ const Lobby: React.FC<LobbyProps> = ({ onStartGame }) => {
 
   useEffect(() => {
     fetchUsers();
-    const interval = setInterval(fetchUsers, 10000);
-    return () => clearInterval(interval);
+    const interval = setInterval(fetchUsers, 10000); // Fetch users every 10 seconds
+    return () => clearInterval(interval); // Cleanup interval on component unmount
   }, []);
 
   const fade = useSpring({ opacity: loading ? 0 : 1 });
@@ -48,9 +48,9 @@ const Lobby: React.FC<LobbyProps> = ({ onStartGame }) => {
     <Container>
       <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
         <GroupIcon sx={{ marginRight: 1 }} />
-        Logged-in Users
+        Online Users
       </Typography>
-  
+
       {loading ? (
         <CircularProgress />
       ) : (
@@ -79,7 +79,7 @@ const Lobby: React.FC<LobbyProps> = ({ onStartGame }) => {
                     size="small"
                     onClick={() => onStartGame(user)}
                   >
-                    Start The Game
+                    Start Game
                   </Button>
                 </ListItem>
               ))}
@@ -89,7 +89,6 @@ const Lobby: React.FC<LobbyProps> = ({ onStartGame }) => {
       )}
     </Container>
   );
-  
 };
 
 export default Lobby;
