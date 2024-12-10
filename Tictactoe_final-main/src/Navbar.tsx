@@ -1,27 +1,27 @@
 import React from 'react';
 import { AppBar, Toolbar, Typography, Button } from '@mui/material';
 
-interface NavbarProps {
-  onLogout: () => void;
-  username: string | undefined;
+interface HeaderProps {
+  onSignOut: () => void;
+  userName: string | undefined;
 }
 
-const Navbar: React.FC<NavbarProps> = ({ onLogout, username }) => {
+const Header: React.FC<HeaderProps> = ({ onSignOut, userName }) => {
   return (
     <AppBar position="static">
       <Toolbar>
         <Typography variant="h6" style={{ flexGrow: 1 }}>
-          Welcome to the TicTacToe Game 
+          Welcome to the Ultimate Tic-Tac-Toe Challenge
         </Typography>
         <Typography variant="body1" style={{ marginRight: '20px' }}>
-          Logged in as: {username}
+          Signed in as: {userName}
         </Typography>
-        <Button color="inherit" onClick={onLogout}>
-          Logout
+        <Button color="inherit" onClick={onSignOut}>
+          Sign Out
         </Button>
       </Toolbar>
     </AppBar>
   );
 };
 
-export default Navbar;
+export default Header;
