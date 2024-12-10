@@ -2,15 +2,15 @@ const WebSocket = require('ws');
 
 const server = new WebSocket.Server({ port: 8080 });
 
-const connectedUsers = {}; // Aktif kullanıcılar
-const activeGames = {}; // Oyun durumları
+const connectedUsers = {}; // Active users
+const activeGames = {}; // Game states
 
 server.on('connection', (client) => {
   let loggedUserId = null;
 
   client.on('message', async (msg) => {
     const receivedData = JSON.parse(msg);
-    console.log('Mesaj alındı:', receivedData);
+    console.log('Message received:', receivedData);
 
     switch (receivedData.type) {
       case 'login': {
@@ -23,7 +23,7 @@ server.on('connection', (client) => {
         client.send(
           JSON.stringify({
             type: 'loginSuccess',
-            message: 'Giriş başarılı',
+            message: 'Login successful',
             currentUser: { uid: receivedData.uid, email: receivedData.email },
             users: Object.keys(connectedUsers).map((id) => ({
               uid: id,
@@ -31,7 +31,7 @@ server.on('connection', (client) => {
             })),
           })
         );
-        console.log('Kullanıcı giriş yaptı:', receivedData.email);
+        console.log('User logged in:', receivedData.email);
         notifyAllUsers();
         break;
       }
@@ -49,7 +49,7 @@ server.on('connection', (client) => {
 
           if (result.success) {
             const newGameId = result.gameId;
-            console.log('Oyun oluşturuldu:', newGameId);
+            console.log('Game created:', newGameId);
 
             activeGames[newGameId] = {
               player1,
@@ -82,16 +82,16 @@ server.on('connection', (client) => {
             client.send(
               JSON.stringify({
                 type: 'error',
-                message: result.message || 'Oyun başlatılamadı',
+                message: result.message || 'Game could not be started',
               })
             );
           }
         } catch (err) {
-          console.error('Hata oluştu:', err);
+          console.error('Error occurred:', err);
           client.send(
             JSON.stringify({
               type: 'error',
-              message: 'Sunucu hatası',
+              message: 'Server error',
             })
           );
         }
@@ -103,7 +103,7 @@ server.on('connection', (client) => {
         const currentGame = activeGames[gameId];
 
         if (!currentGame) {
-          client.send(JSON.stringify({ type: 'error', message: 'Oyun bulunamadı' }));
+          client.send(JSON.stringify({ type: 'error', message: 'Game not found' }));
           return;
         }
 
@@ -113,7 +113,7 @@ server.on('connection', (client) => {
           boardIndex >= currentGame.board.length ||
           currentGame.board[boardIndex] !== null
         ) {
-          client.send(JSON.stringify({ type: 'error', message: 'Geçersiz hamle' }));
+          client.send(JSON.stringify({ type: 'error', message: 'Invalid move' }));
           return;
         }
 
@@ -145,7 +145,7 @@ server.on('connection', (client) => {
       }
 
       default: {
-        console.log('Bilinmeyen mesaj türü:', receivedData.type);
+        console.log('Unknown message type:', receivedData.type);
         break;
       }
     }
@@ -177,4 +177,4 @@ function notifyAllUsers() {
   });
 }
 
-console.log('WebSocket sunucusu çalışıyor: ws://localhost:8080');
+console.log('WebSocket server running: ws://localhost:8080');
