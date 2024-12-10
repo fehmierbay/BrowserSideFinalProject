@@ -2,26 +2,26 @@ import React, { useState } from 'react';
 import LoginPage, { Username, Password, TitleSignup, TitleLogin, Submit, Title } from '@react-login-page/page8';
 import TicTacToe from './TicTacToe';
 
-const styles = { height: 690 };
+const containerStyle = { height: 690 };
 
 interface User {
-  uid: number;
-  email: string;
-  lastseen: number;
-  gid: number | null;
+  id: number;
+  emailAddress: string;
+  lastSeen: number;
+  gameId: number | null;
 }
 
-const Login: React.FC = (props: any) => {
+const Authentication: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [view, setView] = useState<'login' | 'lobby'>('login');
+  const [view, setView] = useState<'auth' | 'gameLobby'>('auth');
 
-  const handleLogin = async (event: React.FormEvent) => {
+  const handleSignIn = async (event: React.FormEvent) => {
     event.preventDefault();
-    const requestBody = {
+    const credentials = {
       email,
-      pass: password,
+      password,
     };
 
     try {
@@ -30,40 +30,40 @@ const Login: React.FC = (props: any) => {
         mode: 'cors',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestBody),
+        body: JSON.stringify(credentials),
       });
 
-      const data = await response.json();
-      if (data.success) {
-        alert(data.message);
-        const user = {
-          uid: data.user.uid,
-          email: data.user.email,
-          lastseen: data.user.lastseen,
-          gid: null,
+      const result = await response.json();
+      if (result.success) {
+        alert(result.message);
+        const loggedUser = {
+          id: result.user.uid,
+          emailAddress: result.user.email,
+          lastSeen: result.user.lastseen,
+          gameId: null,
         };
 
-        localStorage.setItem('user', JSON.stringify(user));
-        setView('lobby');
+        localStorage.setItem('loggedUser', JSON.stringify(loggedUser));
+        setView('gameLobby');
       } else {
-        alert(data.message);
+        alert(result.message);
       }
     } catch (error) {
-      alert('Communication with the server failed. Check console for details.');
+      alert('Failed to communicate with the server. Please check console for more details.');
       console.error(error);
     }
   };
 
-  const handleRegister = async (event: React.FormEvent) => {
+  const handleSignUp = async (event: React.FormEvent) => {
     event.preventDefault();
     if (password !== confirmPassword) {
       alert('Passwords do not match.');
       return;
     }
 
-    const requestBody = {
+    const newUser = {
       email,
-      pass: password,
+      password,
     };
 
     try {
@@ -72,42 +72,42 @@ const Login: React.FC = (props: any) => {
         mode: 'cors',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestBody),
+        body: JSON.stringify(newUser),
       });
 
-      const data = await response.json();
-      if (data.success) {
-        alert(data.message);
+      const result = await response.json();
+      if (result.success) {
+        alert(result.message);
       } else {
-        alert(data.message);
+        alert(result.message);
       }
     } catch (error) {
-      alert('Communication with the server failed. Check console for details.');
+      alert('Failed to communicate with the server. Please check console for more details.');
       console.error(error);
     }
   };
 
   return (
-    <div style={styles}>
-      {view === 'login' ? (
+    <div style={containerStyle}>
+      {view === 'auth' ? (
         <LoginPage>
           <Title />
-          <TitleSignup>Sign up</TitleSignup>
+          <TitleSignup>Register</TitleSignup>
           <TitleLogin>Login</TitleLogin>
 
           <Username
-            label="Email"
-            placeholder="Please input email"
+            label="Email Address"
+            placeholder="Enter your email"
             name="email"
             onChange={(e) => setEmail(e.target.value)}
           />
           <Password
             label="Password"
-            placeholder="Please enter password"
-            name="userPassword"
+            placeholder="Enter your password"
+            name="password"
             onChange={(e) => setPassword(e.target.value)}
           />
-          <Submit keyname="submit" onClick={handleLogin}>
+          <Submit keyname="login-submit" onClick={handleSignIn}>
             Login
           </Submit>
 
@@ -115,27 +115,27 @@ const Login: React.FC = (props: any) => {
 
           <Username
             panel="signup"
-            label="Email"
-            placeholder="E-mail"
-            keyname="e-mail"
+            label="Email Address"
+            placeholder="Enter your email"
+            keyname="email"
             onChange={(e) => setEmail(e.target.value)}
           />
           <Password
             panel="signup"
             label="Password"
-            placeholder="Please enter password"
+            placeholder="Create a password"
             keyname="password"
             onChange={(e) => setPassword(e.target.value)}
           />
           <Password
             panel="signup"
             label="Confirm Password"
-            placeholder="Confirm password"
+            placeholder="Re-enter password"
             keyname="confirm-password"
             onChange={(e) => setConfirmPassword(e.target.value)}
           />
-          <Submit panel="signup" keyname="signup-submit" onClick={handleRegister}>
-            Sign up
+          <Submit panel="signup" keyname="register-submit" onClick={handleSignUp}>
+            Register
           </Submit>
           <Submit panel="signup" keyname="signup-reset">
             Reset game
@@ -148,4 +148,4 @@ const Login: React.FC = (props: any) => {
   );
 };
 
-export default Login;
+export default Authentication;
