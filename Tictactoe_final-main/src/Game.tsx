@@ -1,156 +1,157 @@
-import React, { useState, useRef, useEffect, useContext } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 
 interface GameProps {
-  //ws: WebSocket;
   gameId: string;
   user: User;
   opponent: User;
   board: (string | null)[];
-  sizex: number;
-  sizey: number;
-  setBoard: React.Dispatch<React.SetStateAction<(string | null)[]>>;
-  uidx: number;
-  uido: number;
+  gridWidth: number;
+  gridHeight: number;
+  updateBoard: React.Dispatch<React.SetStateAction<(string | null)[]>>;
+  userXId: number;
+  userOId: number;
 }
 
 interface User {
   uid: number;
   email: string;
-  lastseen: number;
-  gid: number | null;
+  lastSeen: number;
+  gameId: number | null;
 }
 
-function showError(e : any)
-{
-	alert("So, then... you got this error. Kind of weird you got this far and still see this, but let's see what we're going to do about it next week. In the meanwhile, open up the network logs and see what they say, because at the moment your teacher wants to know too :-D.");
-}
+const showError = (error: any) => {
+  alert("Something went wrong. Please check the network logs for details.");
+};
 
-function handleMove(j : any)
-{
-	alert("We'll handle the moves next week, just finalize the sign-in and top status bar first :-). This component has been created already this week mainly to allow you to see a change occur after signing in and also as a hands-on-example of separating the app into components. Once we finish working on this thing you actually enter the game via the \"Lobby\".");
-}
+const moveHandler = (moveData: any) => {
+  alert("Move handling is still a work in progress. Check the lobby for game updates.");
+};
 
-function sendMove(mx: number, my: number, c: any)
-{
-	let obj = { x : mx, y : my};
-	fetch(c.serviceroot+c.receiver, { method : "POST", mode : "cors", credentials : "include", 
-							headers: {'Content-Type': 'text/plain'}, 
-							body : JSON.stringify(obj) }).
-								then( r => r.json() ).then( j => handleMove(j) ).catch( e => showError(e));
-}
+const sendPlayerMove = (mx: number, my: number, config: any) => {
+  const movePayload = { x: mx, y: my };
+  fetch(config.serverBase + config.receiverEndpoint, {
+    method: "POST",
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(movePayload),
+    credentials: "include",
+  })
+  .then(response => response.json())
+  .then(result => moveHandler(result))
+  .catch(err => showError(err));
+};
 
-function drawPartialX(context: CanvasRenderingContext2D, x: number, y: number, size: number, progress: number) {
+const drawXShape = (context: CanvasRenderingContext2D, x: number, y: number, cellSize: number, progress: number) => {
   context.beginPath();
-  context.moveTo(x * size, y * size);
-  context.lineTo(x * size + size * (progress / 100), y * size + size * (progress / 100));
-  context.moveTo(x * size + size, y * size);
-  context.lineTo(x * size + size - size * (progress / 100), y * size + size * (progress / 100));
+  context.moveTo(x * cellSize, y * cellSize);
+  context.lineTo(x * cellSize + cellSize * (progress / 100), y * cellSize + cellSize * (progress / 100));
+  context.moveTo(x * cellSize + cellSize, y * cellSize);
+  context.lineTo(x * cellSize + cellSize - cellSize * (progress / 100), y * cellSize + cellSize * (progress / 100));
   context.stroke();
-}
+};
 
-function drawPartialO(context: CanvasRenderingContext2D, x: number, y: number, size: number, progress: number) {
+const drawOShape = (context: CanvasRenderingContext2D, x: number, y: number, cellSize: number, progress: number) => {
   context.beginPath();
-  context.arc(x * size + size / 2, y * size + size / 2, size / 2 * (progress / 100), 0, 2 * Math.PI);
+  context.arc(x * cellSize + cellSize / 2, y * cellSize + cellSize / 2, (cellSize / 2) * (progress / 100), 0, 2 * Math.PI);
   context.stroke();
-}
+};
 
-function drawGrid(context: CanvasRenderingContext2D, xlines: number, ylines: number, width: number, height: number) {
-  const squareSize = Math.min(width / xlines, height / ylines);
+const renderGrid = (context: CanvasRenderingContext2D, cols: number, rows: number, canvasWidth: number, canvasHeight: number) => {
+  const squareSize = Math.min(canvasWidth / cols, canvasHeight / rows);
 
   if (squareSize < 10) {
-    alert("The size of a square would be less than 10 pixels in either direction.");
+    alert("Square size is too small for the canvas.");
     return;
   }
 
-  context.clearRect(0, 0, width, height);
+  context.clearRect(0, 0, canvasWidth, canvasHeight);
   context.strokeStyle = 'black';
 
-  for (let i = 0; i <= xlines; i++) {
+  for (let i = 0; i <= cols; i++) {
     context.beginPath();
     context.moveTo(i * squareSize, 0);
-    context.lineTo(i * squareSize, ylines * squareSize);
+    context.lineTo(i * squareSize, rows * squareSize);
     context.stroke();
   }
 
-  for (let i = 0; i <= ylines; i++) {
+  for (let i = 0; i <= rows; i++) {
     context.beginPath();
     context.moveTo(0, i * squareSize);
-    context.lineTo(xlines * squareSize, i * squareSize);
+    context.lineTo(cols * squareSize, i * squareSize);
     context.stroke();
   }
-}
+};
 
-function animateCell(context: CanvasRenderingContext2D, x: number, y: number, size: number, animationType: string) {
+const animateShape = (context: CanvasRenderingContext2D, x: number, y: number, cellSize: number, shape: string) => {
   let progress = 0;
-  const animationInterval = setInterval(() => {
-    context.clearRect(x * size, y * size, size, size);
+  const interval = setInterval(() => {
+    context.clearRect(x * cellSize, y * cellSize, cellSize, cellSize);
     context.strokeStyle = 'black';
-    context.strokeRect(x * size, y * size, size, size);
+    context.strokeRect(x * cellSize, y * cellSize, cellSize, cellSize);
 
-    if (animationType === 'X') {
-      drawPartialX(context, x, y, size, progress);
-    } else if (animationType === 'O') {
-      drawPartialO(context, x, y, size, progress);
+    if (shape === 'X') {
+      drawXShape(context, x, y, cellSize, progress);
+    } else if (shape === 'O') {
+      drawOShape(context, x, y, cellSize, progress);
     }
 
     progress += 5;
     if (progress >= 100) {
-      clearInterval(animationInterval);
+      clearInterval(interval);
     }
   }, 16);
-}
+};
 
 const Game: React.FC<GameProps> = ({
-  gameId, user, opponent, board, sizex, sizey, setBoard, uidx, uido 
+  gameId, user, opponent, board, gridWidth, gridHeight, updateBoard, userXId, userOId 
 }) => {
-  const cref = useRef<HTMLCanvasElement>(null);
-  const [drawnCells, setDrawnCells] = useState(new Set<number>());
-  const [currentTurn, setCurrentTurn] = useState<number>(uidx);
-  
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [renderedCells, setRenderedCells] = useState(new Set<number>());
+  const [turn, setTurn] = useState<number>(userXId);
+
   useEffect(() => {
     const pollGameState = async () => {
       try {
-        const response = await fetch(`http://localhost:12380/checkGameStatus.php?gameId=${gameId}`, {
-          credentials: 'include'
+        const response = await fetch(`http://localhost:12380/checkGameState.php?gameId=${gameId}`, {
+          credentials: 'include',
         });
-        const data = await response.json();
-        
-        if (data.success && data.data) {
-          setBoard(data.data.board);
-          setCurrentTurn(data.data.currentTurn);
-          
-          const canvas = cref.current;
+        const result = await response.json();
+
+        if (result.success && result.data) {
+          updateBoard(result.data.board);
+          setTurn(result.data.turn);
+
+          const canvas = canvasRef.current;
           if (!canvas) return;
           const context = canvas.getContext('2d');
           if (!context) return;
-          
-          const cellSize = canvas.width / sizex;
-          
-          data.data.board.forEach((cell: string | null, index: number) => {
-            if (!cell || drawnCells.has(index)) return;
-            
-            const x = index % sizex;
-            const y = Math.floor(index / sizex);
-            
-            animateCell(context, x, y, cellSize, cell);
-            
-            setDrawnCells(prev => new Set(prev).add(index));
+
+          const cellSize = canvas.width / gridWidth;
+
+          result.data.board.forEach((cell: string | null, index: number) => {
+            if (!cell || renderedCells.has(index)) return;
+
+            const x = index % gridWidth;
+            const y = Math.floor(index / gridWidth);
+
+            animateShape(context, x, y, cellSize, cell);
+
+            setRenderedCells(prev => new Set(prev).add(index));
           });
         }
       } catch (error) {
         console.error('Error:', error);
       }
     };
-  
+
     const interval = setInterval(pollGameState, 1000);
     return () => clearInterval(interval);
-  }, [gameId, sizex, sizey, drawnCells, setBoard]);
+  }, [gameId, gridWidth, gridHeight, renderedCells, updateBoard]);
 
-  const handleMove = async (x: number, y: number) => {
-    if (currentTurn !== user.uid) return;
-    
+  const makeMove = async (x: number, y: number) => {
+    if (turn !== user.uid) return;
+
     try {
-      const response = await fetch('http://localhost:12380/move.php', {
+      const response = await fetch('http://localhost:12380/makeMove.php', {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
@@ -161,75 +162,75 @@ const Game: React.FC<GameProps> = ({
           player: user.uid
         })
       });
-      
+
       const data = await response.json();
       if (data.success) {
-        setBoard(data.board);
-        setCurrentTurn(data.nextTurn);
+        updateBoard(data.board);
+        setTurn(data.nextTurn);
       }
     } catch (error) {
       console.error('Error:', error);
     }
   };
 
-  const handleCellClick = (event: React.MouseEvent<HTMLCanvasElement>) => {
-    const canvas = cref.current;
+  const handleCanvasClick = (event: React.MouseEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current;
     if (!canvas) return;
 
     const rect = canvas.getBoundingClientRect();
-    const x = Math.floor((event.clientX - rect.left) / (canvas.width / sizex));
-    const y = Math.floor((event.clientY - rect.top) / (canvas.height / sizey));
-    
-    if (x >= 0 && x < sizex && y >= 0 && y < sizey) {
-      handleMove(x, y);
+    const x = Math.floor((event.clientX - rect.left) / (canvas.width / gridWidth));
+    const y = Math.floor((event.clientY - rect.top) / (canvas.height / gridHeight));
+
+    if (x >= 0 && x < gridWidth && y >= 0 && y < gridHeight) {
+      makeMove(x, y);
     }
   };
 
   useEffect(() => {
-    if (cref.current) {
-      const context = cref.current.getContext('2d');
+    if (canvasRef.current) {
+      const context = canvasRef.current.getContext('2d');
       if (context) {
-        drawGrid(context, sizex, sizey, cref.current.width, cref.current.height);
+        renderGrid(context, gridWidth, gridHeight, canvasRef.current.width, canvasRef.current.height);
       }
     }
-  }, [sizex, sizey]);
+  }, [gridWidth, gridHeight]);
 
   useEffect(() => {
-    const canvas = cref.current;
+    const canvas = canvasRef.current;
     if (!canvas) return;
     const context = canvas.getContext('2d');
     if (!context) return;
-  
-    const cellSize = canvas.width / sizex;
-  
+
+    const cellSize = canvas.width / gridWidth;
+
     board.forEach((cell, index) => {
-      if (!cell || drawnCells.has(index)) return;
-  
-      const x = index % sizex;
-      const y = Math.floor(index / sizex);
-  
+      if (!cell || renderedCells.has(index)) return;
+
+      const x = index % gridWidth;
+      const y = Math.floor(index / gridWidth);
+
       if (cell === 'X') {
-        drawPartialX(context, x, y, cellSize, 100);
+        drawXShape(context, x, y, cellSize, 100);
       } else if (cell === 'O') {
-        drawPartialO(context, x, y, cellSize, 100);
+        drawOShape(context, x, y, cellSize, 100);
       }
 
-      setDrawnCells((prev) => new Set(prev).add(index));
+      setRenderedCells(prev => new Set(prev).add(index));
     });
-  }, [board, drawnCells, sizex, sizey]);
+  }, [board, renderedCells, gridWidth, gridHeight]);
 
   return (
     <div>
-      <h2>Game with {opponent.email}</h2>
-      <p>Current Turn: {currentTurn === user.uid ? 'Your Turn' : "Opponent's Turn"}</p>
+      <h2>Playing against {opponent.email}</h2>
+      <p>Current Turn: {turn === user.uid ? 'Your Turn' : 'Opponent\'s Turn'}</p>
       <canvas 
-        ref={cref} 
-        width={sizex * 200} 
-        height={sizey * 200} 
-        onClick={handleCellClick} 
+        ref={canvasRef} 
+        width={gridWidth * 200} 
+        height={gridHeight * 200} 
+        onClick={handleCanvasClick} 
       />
       <audio autoPlay loop>
-        <source src="http://localhost:12380/contra.mp3" type="audio/mpeg" />
+        <source src="http://localhost:12380/background.mp3" type="audio/mpeg" />
       </audio>
     </div>
   );
