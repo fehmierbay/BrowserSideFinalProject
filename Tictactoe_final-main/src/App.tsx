@@ -1,7 +1,7 @@
 import React from 'react';
 import { Dispatch, SetStateAction, useEffect, useState } from 'react';
 import { CircularProgress } from '@mui/material';
-import TicTacToe from './TicTacToe';
+import erba from './erba';
 import Login from './Login';
 
 /*
