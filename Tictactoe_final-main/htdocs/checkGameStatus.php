@@ -1,19 +1,19 @@
 <?php
-// CORS ayarları
+// CORS settings
 header("Access-Control-Allow-Origin: http://localhost:3000");
 header("Access-Control-Allow-Methods: GET, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type");
 header("Access-Control-Allow-Credentials: true");
 header("Content-Type: application/json");
 
-// Oturum başlatılıyor
+// Start session
 session_start();
 
-// Sadece GET istekleri işleniyor
+// Only GET requests are processed
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $gameId = isset($_GET['gameId']) ? trim($_GET['gameId']) : null;
 
-    // gameId kontrolü
+    // Checking if gameId is provided
     if (empty($gameId)) {
         echo json_encode([
             'success' => false,
@@ -24,7 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 
     $gameId = (int)$gameId;
 
-    // Oyun oturumda kayıtlı mı kontrol ediliyor
+    // Check if the game exists in the session
     if (empty($_SESSION['games']) || !array_key_exists($gameId, $_SESSION['games'])) {
         echo json_encode([
             'success' => false,
@@ -42,7 +42,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         exit;
     }
 
-    // Oyun bilgileri alınıyor
+    // Retrieve the game data
     $gameData = $_SESSION['games'][$gameId];
     echo json_encode([
         'success' => true,
